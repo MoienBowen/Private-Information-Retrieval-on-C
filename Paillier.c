@@ -243,3 +243,10 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
+
+/**
+ * test with:
+ * gcc Paillier.c -lgmp
+ * ./a.out
+ **/
