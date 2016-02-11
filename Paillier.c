@@ -103,24 +103,24 @@ void getPriKey (mpz_t KPri[3], mpz_t* LKey)
 
 void encryption(mpz_t msg_secu, mpz_t m, mpz_t* KPub)
 {
-    mpz_t gpowm, rtmp, rpown, nsquare, tmp;
+    mpz_t gpowm, r, rpown, nsquare, tmp;
     mpz_init(gpowm);
-    mpz_init(rtmp);
+    mpz_init(r);
     mpz_init(rpown);
     mpz_init(tmp);
     mpz_init(nsquare);
 
-    getRandom(rtmp);
+    getRandom(r);
     mpz_mul(nsquare, KPub[0], KPub[0]);
 
     mpz_powm(gpowm, KPub[1], m, nsquare);
-    mpz_powm(rpown, rtmp, KPub[0], nsquare);
+    mpz_powm(rpown, r, KPub[0], nsquare);
 
     mpz_mul(tmp, gpowm, rpown);
     mpz_mod(msg_secu, tmp, nsquare);
 
     mpz_clear(gpowm);
-    mpz_clear(rtmp);
+    mpz_clear(r);
     mpz_clear(rpown);
     mpz_clear(nsquare);
     mpz_clear(tmp);
@@ -139,24 +139,32 @@ void lOfDecoding(mpz_t resultL, mpz_t u, mpz_t* KPub)
 
 void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
 {
-    mpz_t nsquare, abovetmp, above, belowtmp, below, resultdiv, tmp;
+    mpz_t nsquare, abovetmp, above, belowtmp, below, tmp, left, right;
 
     mpz_init(nsquare);
     mpz_init(abovetmp);
     mpz_init(above);
     mpz_init(belowtmp);
     mpz_init(below);
-    mpz_init(resultdiv);
+    mpz_init(left);
+    mpz_init(right);
     mpz_init(tmp);
 
     mpz_mul(nsquare, KPub[0], KPub[0]);
     mpz_powm(abovetmp, msg_secu, KPri[2], nsquare);
     mpz_powm(belowtmp, msg_secu, KPub[1], nsquare);
-    lOfDecoding(above, abovetmp, KPub);
-    lOfDecoding(below, belowtmp, KPub);
-    mpz_mod(above, above, KPub[0]);
-    mpz_powm_ui(below, below, (-1), KPub[0]);
-    mpz_mul(tmp, above, below);
+
+    // lOfDecoding(above, abovetmp, KPub);
+    // lOfDecoding(below, belowtmp, KPub);
+    mpz_sub_ui(above, abovetmp, 1);
+    mpz_sub_ui(below, belowtmp, 1);
+
+    // mpz_div(tmp, above, below);
+    // mpz_mod(msg_clear, tmp, KPub[0]);
+
+    mpz_mod(left, above, KPub[0]);
+    mpz_powm_ui(right, below, (-1), KPub[0]);
+    mpz_mul(tmp, left, right);
     mpz_mod(msg_clear, tmp, KPub[0]);
 
     mpz_clear(nsquare);
@@ -164,8 +172,10 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
     mpz_clear(above);
     mpz_clear(belowtmp);
     mpz_clear(below);
-    mpz_clear(resultdiv);
     mpz_clear(tmp);
+    mpz_clear(left);
+    mpz_clear(right);
+
 }
 
 int main(int argc, char** argv)
@@ -183,7 +193,7 @@ int main(int argc, char** argv)
     getRandom(mym);
 
     /* Show random m */
-    gmp_printf ("\n%s\n%Zd\n", "The random number m is:", mym);
+    gmp_printf ("\n%s\n%Zd\n", "The random number m (orginal message) is:", mym);
 
     for(int i = 0; i < 5; i++)
     {
