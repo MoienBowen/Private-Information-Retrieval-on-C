@@ -111,8 +111,8 @@ void encryption(mpz_t msg_secu, mpz_t m, mpz_t* KPub)
     mpz_init(nsquare);
 
     getRandom(r);
+    gmp_printf ("\nThe random r: \n%Zd", r, ".\n");
     mpz_mul(nsquare, KPub[0], KPub[0]);
-
     mpz_powm(gpowm, KPub[1], m, nsquare);
     mpz_powm(rpown, r, KPub[0], nsquare);
 
@@ -151,19 +151,25 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
     mpz_init(tmp);
 
     mpz_mul(nsquare, KPub[0], KPub[0]);
-    mpz_powm(abovetmp, msg_secu, KPri[2], nsquare);
-    mpz_powm(belowtmp, msg_secu, KPub[1], nsquare);
 
+    mpz_powm(abovetmp, msg_secu, KPri[2], nsquare);
+    mpz_powm(belowtmp, KPub[1], KPri[2], nsquare);
+
+    // No more use focntion L, part 1
     // lOfDecoding(above, abovetmp, KPub);
     // lOfDecoding(below, belowtmp, KPub);
     mpz_sub_ui(above, abovetmp, 1);
     mpz_sub_ui(below, belowtmp, 1);
 
+    // No more use focntion L, part 2
     // mpz_div(tmp, above, below);
     // mpz_mod(msg_clear, tmp, KPub[0]);
 
+    // a / b mod n = ((a mod n)(b^(-1) mod n)) mod n
     mpz_mod(left, above, KPub[0]);
-    mpz_powm_ui(right, below, (-1), KPub[0]);
+    //mpz_powm_ui(right, below, (-1), KPub[0]);
+    mpz_invert(right, below, KPub[0]);
+
     mpz_mul(tmp, left, right);
     mpz_mod(msg_clear, tmp, KPub[0]);
 
@@ -223,16 +229,16 @@ int main(int argc, char** argv)
     // mpz_clear(test);
 
     /* Show test for Key List*/
-    // for(int i = 0; i < 5; i++)
-    // {
-    //     gmp_printf ("\nKey[ %d ] (mpz_t) is: \n%Zd\n", i, LKey[i]);
-    // }
+    for(int i = 0; i < 5; i++)
+    {
+        gmp_printf ("\nKey[ %d ] (p, q, lambda(n), n g) is: \n%Zd\n", i, LKey[i]);
+    }
 
     encryption(msg_secu, mym, KPub);
     decryption(msg_clear, msg_secu, KPub, KPri);
 
-    // gmp_printf ("\nThe message encryption: \n%Zd", msg_secu, ".\n");
-    gmp_printf ("\nThe message decryption: \n%Zd", msg_clear, ".\n");
+    gmp_printf ("\n\nThe message encryption: \n%Zd", msg_secu, ".\n");
+    gmp_printf ("\n\nThe message decryption: \n%Zd", msg_clear, ".\n");
 
     for(int i = 0; i < 5; i++)
     {
