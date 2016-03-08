@@ -37,6 +37,7 @@ void getRandomPrime(mpz_t numrandom)
     mpz_clear(max);
     mpz_clear(min);
     mpz_clear(maxtmp);
+    gmp_randclear(staterandom);
 }
 
 /* For random r, non prime accepted */
@@ -69,6 +70,7 @@ void getRandom(mpz_t numrandom)
     mpz_clear(max);
     mpz_clear(min);
     mpz_clear(maxtmp);
+    gmp_randclear(staterandom);
 }
 
 void getKeyList(mpz_t LKey[5])
@@ -281,7 +283,7 @@ int main(int argc, char** argv)
 
 /**
  * test with:
- * gcc Paillier.c -lgmp && time./a.out
+ * gcc Paillier.c -lgmp && time ./a.out
  **/
 
 /* time in 0.06 s and 1.05 s */
