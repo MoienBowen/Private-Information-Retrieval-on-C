@@ -2,11 +2,9 @@
  * Paviller CryptoSystem on C with gmp.h
  * Feb. 19, 2016
  **/
-
+#include "Paillier.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <gmp.h>
-#include <time.h>
 
 void getRandomPrime(mpz_t numrandom)
 {
@@ -73,13 +71,14 @@ void getRandom(mpz_t numrandom)
     gmp_randclear(staterandom);
 }
 
-void getKeyList(mpz_t LKey[5])
+void getKeyList(mpz_t LKey[6])
 {
-    mpz_t p, q, lambdan, n, g, psubone, qsubone, test;
+    mpz_t p, q, lambdan, n, nsquare, g, psubone, qsubone, test;
     mpz_init(p);
     mpz_init(q);
     mpz_init(lambdan);
     mpz_init(n);
+    mpz_init(nsquare);
     mpz_init(g);
     mpz_init(test);
     mpz_init(psubone);
@@ -94,6 +93,7 @@ void getKeyList(mpz_t LKey[5])
     }
     /* n = p * q */
     mpz_mul(n, p, q);
+    mpz_mul(nsquare, n, n);
     /* λ(n) = lcm(p - 1, q - 1) */
     mpz_sub_ui(psubone, p, 1);
     mpz_sub_ui(qsubone, q, 1);
@@ -110,23 +110,27 @@ void getKeyList(mpz_t LKey[5])
         mpz_set(LKey[2], lambdan);
         mpz_set(LKey[3], n);
         mpz_set(LKey[4], g);
+        mpz_set(LKey[5], nsquare);
     }
 
     mpz_clear(p);
     mpz_clear(q);
     mpz_clear(lambdan);
     mpz_clear(n);
+    mpz_clear(nsquare);
     mpz_clear(g);
     mpz_clear(test);
     mpz_clear(psubone);
     mpz_clear(qsubone);
 }
 
-void getPubKey (mpz_t KPub[2], mpz_t* LKey)
+void getPubKey (mpz_t KPub[3], mpz_t* LKey)
 {
-    /* Public Keys: n and g */
+    /* Public Keys: n, g and n^2 */
     mpz_set(KPub[0], LKey[3]);
     mpz_set(KPub[1], LKey[4]);
+    mpz_set(KPub[2], LKey[5]);
+
 }
 
 void getPriKey (mpz_t KPri[3], mpz_t* LKey)
@@ -140,29 +144,26 @@ void getPriKey (mpz_t KPri[3], mpz_t* LKey)
 /* msg_secu = g^m * r^n (mod n) */
 void encryption(mpz_t msg_secu, mpz_t m, mpz_t* KPub)
 {
-    mpz_t gpowm, r, rpown, nsquare, tmp;
+    mpz_t gpowm, r, rpown, tmp;
     mpz_init(gpowm);
     mpz_init(r);
     mpz_init(rpown);
     mpz_init(tmp);
-    mpz_init(nsquare);
 
     getRandom(r);
-    mpz_mul(nsquare, KPub[0], KPub[0]);
-    mpz_powm(gpowm, KPub[1], m, nsquare);
-    mpz_powm(rpown, r, KPub[0], nsquare);
+    mpz_powm(gpowm, KPub[1], m, KPub[2]);
+    mpz_powm(rpown, r, KPub[0], KPub[2]);
     mpz_mul(tmp, gpowm, rpown);
-    mpz_mod(msg_secu, tmp, nsquare);
+    mpz_mod(msg_secu, tmp, KPub[2]);
 
     mpz_clear(gpowm);
     mpz_clear(r);
     mpz_clear(rpown);
-    mpz_clear(nsquare);
     mpz_clear(tmp);
 }
 
 /* L(u) = (u - 1) / n, ∀u ∈ Sn = {u | 0 < u < n^2 and u ≡ 1 (mod n)}  */
-void lOfDecoding(mpz_t resultL, mpz_t u, mpz_t* KPub)
+void lOfDecrypt(mpz_t resultL, mpz_t u, mpz_t* KPub)
 {
     mpz_t resultLtmp;
     mpz_init(resultLtmp);
@@ -176,9 +177,8 @@ void lOfDecoding(mpz_t resultL, mpz_t u, mpz_t* KPub)
 /* msg_clear = L(c^λ(n) (mod n^2)) / L(g^λ(n) (mod n^2)) (mod n) */
 void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
 {
-    mpz_t nsquare, abovetmp, above, belowtmp, below, tmp, left, right;
+    mpz_t abovetmp, above, belowtmp, below, tmp, left, right;
 
-    mpz_init(nsquare);
     mpz_init(abovetmp);
     mpz_init(above);
     mpz_init(belowtmp);
@@ -187,11 +187,10 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
     mpz_init(right);
     mpz_init(tmp);
 
-    mpz_mul(nsquare, KPub[0], KPub[0]);
-    mpz_powm(above, msg_secu, KPri[2], nsquare);
-    mpz_powm(below, KPub[1], KPri[2], nsquare);
-    lOfDecoding(abovetmp, above, KPub);
-    //lOfDecoding(belowtmp, below, KPub); // result equal to λ(n)
+    mpz_powm(above, msg_secu, KPri[2], KPub[2]);
+    mpz_powm(below, KPub[1], KPri[2], KPub[2]);
+    lOfDecrypt(abovetmp, above, KPub);
+    //lOfDecrypt(belowtmp, below, KPub); // result equal to λ(n)
 
     // a / b mod n = ((a mod n) * (b^(-1) mod n)) mod n
     mpz_mod(above, abovetmp, KPub[0]);
@@ -200,7 +199,6 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
     mpz_mul(tmp, above, below);
     mpz_mod(msg_clear, tmp, KPub[0]);
 
-    mpz_clear(nsquare);
     mpz_clear(abovetmp);
     mpz_clear(above);
     mpz_clear(belowtmp);
@@ -210,76 +208,70 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
     mpz_clear(right);
 }
 
-int main(int argc, char** argv)
-{
-    mpz_t mym, LKey[5], KPub[2], KPri[3], msg_secu, msg_clear;
-    mpz_init(mym);
-    mpz_init(msg_secu);
-    mpz_init(msg_clear);
-
-    /* Manual input m test */
-    // gmp_printf("\nPlease Enter your massage in number:\n");
-    // gmp_scanf("%Zd", mym);
-
-    /* Random m input */
-    getRandom(mym);
-
-    /* Show random m */
-    gmp_printf ("\n%s\n%Zd\n", "The random number m (orginal message) is:", mym);
-
-    for(int i = 0; i < 5; i++)
-    {
-        mpz_init(LKey[i]);
-    }
-    for(int i = 0; i < 2; i++)
-    {
-        mpz_init(KPub[i]);
-    }
-    for(int i = 0; i < 3; i++)
-    {
-        mpz_init(KPri[i]);
-    }
-
-    /* How to initialize array like this ? */
-    // mpz_array_init(LKey[0], 5, 1024);
-    // mpz_array_init(KPub[0], 2, 1024);
-    // mpz_array_init(KPri[0], 3, 1024);
-
-    getKeyList(LKey);
-    getPubKey(KPub, LKey);
-    getPriKey(KPri, LKey);
-
-    /* Show the Key List*/
-    // for(int i = 0; i < 5; i++)
-    // {
-    //     gmp_printf ("\nKey [ %d ] (p, q, λ(n), n g) is: \n%Zd\n", i, LKey[i]);
-    // }
-
-    encryption(msg_secu, mym, KPub);
-    decryption(msg_clear, msg_secu, KPub, KPri);
-
-    gmp_printf ("\n\nThe encryption message: \n%Zd\n", msg_secu);
-    gmp_printf ("\n\nThe decryption message: \n%Zd\n", msg_clear);
-
-    for(int i = 0; i < 5; i++)
-    {
-        mpz_clear(LKey[i]);
-    }
-    for(int i = 0; i < 2; i++)
-    {
-        mpz_clear(KPub[i]);
-    }
-    for(int i = 0; i < 3; i++)
-    {
-        mpz_clear(KPri[i]);
-    }
-
-    mpz_clear(mym);
-    mpz_clear(msg_secu);
-    mpz_clear(msg_clear);
-
-    return 0;
-}
+// int main(int argc, char** argv)
+// {
+//     mpz_t mym, LKey[6], KPub[3], KPri[3], msg_secu, msg_clear;
+//     mpz_init(mym);
+//     mpz_init(msg_secu);
+//     mpz_init(msg_clear);
+//
+//     /* Manual input m test */
+//     // gmp_printf("\nPlease Enter your massage in number:\n");
+//     // gmp_scanf("%Zd", mym);
+//
+//     /* Random m input */
+//     getRandom(mym);
+//
+//     /* Show random m */
+//     gmp_printf ("\n%s\n%Zd\n", "The random number m (orginal message) is:", mym);
+//
+//     for(int i = 0; i < 6; i++)
+//     {
+//         mpz_init(LKey[i]);
+//     }
+//     for(int i = 0; i < 3; i++)
+//     {
+//         mpz_init(KPub[i]);
+//         mpz_init(KPri[i]);
+//     }
+//
+//     /* How to initialize array like this ? */
+//     // mpz_array_init(LKey[0], 5, 1024);
+//     // mpz_array_init(KPub[0], 2, 1024);
+//     // mpz_array_init(KPri[0], 3, 1024);
+//
+//     getKeyList(LKey);
+//     getPubKey(KPub, LKey);
+//     getPriKey(KPri, LKey);
+//
+//     /* Show the Key List*/
+//     // for(int i = 0; i < 6; i++)
+//     // {
+//     //     gmp_printf ("\nKey [ %d ] (p, q, λ(n), n g) is: \n%Zd\n", i, LKey[i]);
+//     // }
+//
+//     encryption(msg_secu, mym, KPub);
+//     decryption(msg_clear, msg_secu, KPub, KPri);
+//
+//     //gmp_printf ("\n\nThe encryption message: \n%Zd\n", msg_secu);
+//     gmp_printf ("\n\nThe decryption message: \n%Zd\n", msg_clear);
+//
+//     for(int i = 0; i < 6; i++)
+//     {
+//         mpz_clear(LKey[i]);
+//     }
+//     for(int i = 0; i < 3; i++)
+//     {
+//         mpz_clear(KPub[i]);
+//         mpz_clear(KPri[i]);
+//     }
+//
+//     mpz_clear(mym);
+//     mpz_clear(msg_secu);
+//     mpz_clear(msg_clear);
+//
+//     return 0;
+// }
 
 /**
  * test with:
