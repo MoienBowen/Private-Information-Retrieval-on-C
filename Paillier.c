@@ -3,8 +3,6 @@
  * Feb. 19, 2016
  **/
 #include "Paillier.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 void getRandomPrime(mpz_t numrandom)
 {
@@ -275,7 +273,7 @@ void decryption(mpz_t msg_clear, mpz_t msg_secu, mpz_t* KPub, mpz_t* KPri)
 
 /**
  * test with:
- * gcc Paillier.c -lgmp && time ./a.out
+ * gcc Paillier.c -lgmp && ./a.out
  **/
 
 /* time in 0.06 s and 1.05 s */

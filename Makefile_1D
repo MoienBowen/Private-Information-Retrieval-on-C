@@ -2,8 +2,8 @@
 CFLAGS = -Wall -Wextra -g -std=c99
 CPPFLAGS =
 LDFLAGS = -lgmp
-EXE = PIR
-OBJ = Paillier.o PIR_Naive.o PIR_2D.o PIR_3D.o PIR_XD.o Build_DBMS.o main.o
+EXE = main
+OBJ = Paillier.o PIR_Naive.o main.o
 
 # Special rules and targets
 .PHONY: all paillier clean help
@@ -14,25 +14,13 @@ all: $(EXE)
 $(EXE): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-Paillier.o: Paillier.c
+Paillier.o: Paillier.c Paillier.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
 
-PIR_Naive.o: PIR_Naive.c
+PIR_Naive.o: PIR_Naive.c Paillier.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
 
-PIR_2D.o: PIR_2D.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
-
-PIR_3D.o: PIR_3D.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
-
-PIR_XD.o: PIR_XD.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
-
-Build_DBMS.o: Build_DBMS.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
-
-main.o: main.c
+main.o: main.c Paillier.c PIR_Naive.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^
 
 clean:
