@@ -1,1 +1,1 @@
-# Paillier-on-C
+# Private Information Retrieval-on-C
